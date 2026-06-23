@@ -6,15 +6,25 @@ La aplicación se desarrollará como una SPA de cliente usando React, TypeScript
 
 ## Estado del proyecto
 
-Este repositorio se implementará de forma progresiva mediante commits pequeños, para que cada hito pueda revisarse de manera independiente.
+Este repositorio se implementará de forma progresiva mediante commits pequeños, para que cada hito pueda revisarse de manera independiente. Con eso se puede ver la evolución histórica del proyecto a media que se van completando los avances.
 
 ## Requisitos principales
 
+Los requisitos que se piden son los siguientes:
 - Construir una SPA sin SSR.
 - Usar React o Preact.
 - Implementar dos vistas:
   - Página de listado de productos.
+    - Página donde se visualizará la lista de los productos.
+    - En esta página, se mostrarán todos los elementos que nos devuelve la petición del API.
+    - Permitirá el filtrado del contenido en función del criterio de búsqueda que el usuario introduzca.
+    - Al seleccionar un producto, deberá navegar a los detalles del mismo.
+    - Se mostrarán un máximo de cuatro elementos por fila, y que sea adaptativo según la resolución.
   - Página de detalle de producto.
+    - Esta página se dividirá en dos columnas:
+      - En la primera se mostrará el componente de la imagen del producto.
+      - En la segunda, se mostrará los detalles y las acciones del producto.
+    - Deberá mostrar un link para navegar de vuelta a la lista de productos.
 - Mostrar todos los productos devueltos por la API.
 - Filtrar productos en tiempo real por marca y modelo.
 - Navegar desde una tarjeta de producto hacia su página de detalle.
@@ -31,6 +41,56 @@ Este repositorio se implementará de forma progresiva mediante commits pequeños
   - `build`
   - `test`
   - `lint`
+- DESCRIPCIÓN DE LOS COMPONENTES
+Cabecera (HEADER):
+• El título o el icono de la aplicación, actuará como enlace a la vista principal.
+• Se mostrará un breadcrumbs, mostrando la página donde se encuentra el 
+usuario, así como un link para su navegación.
+• En la parte derecha de la cabecera, se mostrará el número de ítems que se 
+hayan añadido al carrito.
+Barra de búsqueda (SEARCH):
+• Se mostrará un input al usuario, el permitirá la introducción de una cadena de 
+texto.
+• El usuario deberá filtrar los productos en función del texto introducido, y se 
+comparará con la Marca y el Modelo de los productos.
+• El filtrado, será en tiempo real, es decir, se lanzará una búsqueda cada vez que el 
+usuario cambie los criterios de búsqueda.
+Elemento lista (ITEM):
+• Se mostrará la siguiente información del producto:
+o Imagen
+o Marca
+o Modelo
+o Precio
+Imagen Producto (IMAGE):
+• Se visualizará la imagen del producto
+Descripción Producto (DESCRIPTION):
+• Se mostrará los detalles asociados a los productos. Se mostrarán al menos los 
+siguientes atributos:
+o Marca
+o Modelo
+o Precio
+o CPU
+o RAM
+o Sistema Operativo
+o Resolución de pantalla
+o Batería
+o Cámaras
+o Dimensiones
+o Peso
+Acciones Producto (ACTIONS):
+• Se mostrarán dos tipos de selectores, donde el usuario, podrá seleccionar el 
+tipo de producto que quiere añadir a la cesta. Se mostrarán los selectores de 
+opciones para los siguientes atributos:
+o Almacenamiento
+o Colores
+• Aunque solo exista una opción, se mostrará el selector con la información. Para 
+este caso de uso, deberá estar seleccionado por defecto.
+• Se visualizará un botón de Añadir, donde el usuario, una vez seleccionada las 
+opciones, añadirá el producto a la cesta.
+• Al añadir un producto mediante el API, se requiere mandar la siguiente 
+información:
+o El identificador del producto.
+o El código de color seleccionado.   
 
 ## Stack planificado
 
