@@ -12,6 +12,7 @@ describe('App', () => {
     expect(
       screen.getByRole('heading', { name: /listado de productos/i }),
     ).toBeInTheDocument();
+    expect(screen.getByText('LIST VIEW')).toBeInTheDocument();
     expect(screen.getByLabelText(/productos en carrito: 0/i)).toBeInTheDocument();
   });
 });

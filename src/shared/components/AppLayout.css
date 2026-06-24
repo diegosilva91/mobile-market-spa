@@ -1,10 +1,13 @@
 .app-layout {
-  min-height: 100vh;
+  background: #ffffff;
+  border: 1px solid #1f2937;
+  margin: clamp(0.75rem, 2vw, 1.5rem) auto;
+  max-width: 1180px;
+  min-height: calc(100vh - 3rem);
+  padding: 1rem;
+  width: calc(100% - 2rem);
 }
 
 .app-main {
-  margin: 0 auto;
-  max-width: 1180px;
-  padding: 2rem clamp(1rem, 4vw, 2rem) 4rem;
-  width: 100%;
+  padding-top: 1rem;
 }
