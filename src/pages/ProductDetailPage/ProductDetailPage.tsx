@@ -1,15 +1,22 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useOutletContext, useParams } from 'react-router-dom';
 
 import { getProductDetail } from '../../features/products/services/productService';
 import type { ProductDetail } from '../../features/products/types/product.types';
+import { apiRequest } from '../../shared/services/apiClient';
 import './ProductDetailPage.css';
+
+type LayoutContext = {
+  setCartCount: (count: number) => void;
+};
 
 export function ProductDetailPage() {
   const { productId } = useParams();
+  const { setCartCount } = useOutletContext<LayoutContext>();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [selectedStorageCode, setSelectedStorageCode] = useState<number | ''>('');
   const [selectedColorCode, setSelectedColorCode] = useState<number | ''>('');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     if (!productId) {
@@ -23,7 +30,25 @@ export function ProductDetailPage() {
     });
   }, [productId]);
 
-  const canAddToCart = selectedStorageCode !== '' && selectedColorCode !== '';
+  const canAddToCart = Boolean(product && selectedStorageCode !== '' && selectedColorCode !== '');
+
+  async function handleAddToCart() {
+    if (!product || selectedStorageCode === '' || selectedColorCode === '') {
+      return;
+    }
+
+    const response = await apiRequest<{ count: number }>('/api/cart', {
+      method: 'POST',
+      body: {
+        id: product.id,
+        storageCode: selectedStorageCode,
+        colorCode: selectedColorCode,
+      },
+    });
+
+    setCartCount(response.count);
+    setMessage('Producto añadido al carrito.');
+  }
 
   return (
     <section className="detail-section" aria-labelledby="product-detail-title">
@@ -83,9 +108,10 @@ export function ProductDetailPage() {
                 </select>
               </label>
 
-              <button disabled={!canAddToCart} type="button">
+              <button disabled={!canAddToCart} onClick={handleAddToCart} type="button">
                 Añadir al carrito
               </button>
+              {message && <p role="status">{message}</p>}
             </div>
           </article>
         </div>

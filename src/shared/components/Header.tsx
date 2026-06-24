@@ -4,7 +4,11 @@ import { Breadcrumbs } from './Breadcrumbs';
 import { CartCounter } from './CartCounter';
 import './Header.css';
 
-export function Header() {
+type HeaderProps = {
+  cartCount: number;
+};
+
+export function Header({ cartCount }: HeaderProps) {
   const { pathname } = useLocation();
 
   return (
@@ -17,7 +21,7 @@ export function Header() {
 
         <Breadcrumbs pathname={pathname} />
 
-        <CartCounter count={0} />
+        <CartCounter count={cartCount} />
       </div>
     </header>
   );
