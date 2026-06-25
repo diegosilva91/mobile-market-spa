@@ -7,7 +7,7 @@ import './ProductListPage.css';
 
 export function ProductListPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const { products, isLoading, error } = useProducts();
+  const { products, isLoading, error, reload } = useProducts();
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -45,7 +45,14 @@ export function ProductListPage() {
       </div>
 
       {isLoading && <p className="list-view__state">Cargando productos...</p>}
-      {!isLoading && error && <p className="list-view__state list-view__state--error">{error}</p>}
+      {!isLoading && error && (
+        <div className="list-view__state list-view__state--error">
+          <p>{error}</p>
+          <button className="list-view__retry" type="button" onClick={reload}>
+            Reintentar
+          </button>
+        </div>
+      )}
       {!isLoading && !error && filteredProducts.length === 0 && (
         <p className="list-view__state">No hay productos que coincidan con la búsqueda.</p>
       )}

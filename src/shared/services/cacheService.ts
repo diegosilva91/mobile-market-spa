@@ -6,15 +6,11 @@ type CacheRecord<T> = {
 };
 
 function getStorage(): Storage | null {
-  try {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-
-    return window.sessionStorage;
-  } catch {
+  if (typeof window === 'undefined') {
     return null;
   }
+
+  return window.localStorage;
 }
 
 export function getCachedValue<T>(key: string): T | null {

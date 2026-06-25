@@ -1,40 +1,50 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
-import { getCachedValue, setCachedValue, withClientCache } from './cacheService';
+import { withClientCache } from './cacheService';
 
 describe('cacheService', () => {
   beforeEach(() => {
-    sessionStorage.clear();
-    vi.restoreAllMocks();
+    localStorage.clear();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
   });
 
-  it('devuelve null cuando no existe una entrada cacheada', () => {
-    expect(getCachedValue('missing-key')).toBeNull();
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-  it('guarda y recupera una entrada no expirada', () => {
-    setCachedValue('products:list:test', [{ id: '1', brand: 'Apple' }], 60_000);
+  it('guarda el resultado de la primera petición y reutiliza caché', async () => {
+    const request = vi.fn().mockResolvedValue({ ok: true });
 
-    expect(getCachedValue('products:list:test')).toEqual([{ id: '1', brand: 'Apple' }]);
+    const first = await withClientCache('products:list:v1', request);
+    const second = await withClientCache('products:list:v1', request);
+
+    expect(first).toEqual({ ok: true });
+    expect(second).toEqual({ ok: true });
+    expect(request).toHaveBeenCalledTimes(1);
   });
 
-  it('invalida una entrada expirada', () => {
-    vi.spyOn(Date, 'now').mockReturnValueOnce(1_000);
-    setCachedValue('products:detail:test', { id: '1' }, 500);
+  it('revalida cuando la caché expira', async () => {
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce(['first'])
+      .mockResolvedValueOnce(['second']);
 
-    vi.spyOn(Date, 'now').mockReturnValueOnce(2_000);
+    await withClientCache('products:list:v1', request);
+    vi.advanceTimersByTime(60 * 60 * 1000 + 1);
+    const value = await withClientCache('products:list:v1', request);
 
-    expect(getCachedValue('products:detail:test')).toBeNull();
+    expect(value).toEqual(['second']);
+    expect(request).toHaveBeenCalledTimes(2);
   });
 
-  it('evita repetir la petición cuando existe caché válida', async () => {
-    const request = vi.fn().mockResolvedValue({ id: '1', model: 'iPhone' });
+  it('invalida entradas corruptas', async () => {
+    localStorage.setItem('products:list:v1', '{not-json');
+    const request = vi.fn().mockResolvedValue(['fresh']);
 
-    const firstResult = await withClientCache('product:test', request);
-    const secondResult = await withClientCache('product:test', request);
+    const value = await withClientCache('products:list:v1', request);
 
-    expect(firstResult).toEqual({ id: '1', model: 'iPhone' });
-    expect(secondResult).toEqual({ id: '1', model: 'iPhone' });
+    expect(value).toEqual(['fresh']);
     expect(request).toHaveBeenCalledTimes(1);
   });
 });

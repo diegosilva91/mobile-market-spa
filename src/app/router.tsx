@@ -1,9 +1,28 @@
+import { Suspense, lazy } from 'react';
+import type { ReactNode } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 
-import { ProductDetailPage } from '../pages/ProductDetailPage/ProductDetailPage';
-import { ProductListPage } from '../pages/ProductListPage/ProductListPage';
-import { NotFoundPage } from '../pages/NotFoundPage/NotFoundPage';
 import { AppLayout } from '../shared/components/AppLayout';
+
+const ProductListPage = lazy(() =>
+  import('../pages/ProductListPage/ProductListPage').then((module) => ({
+    default: module.ProductListPage,
+  })),
+);
+const ProductDetailPage = lazy(() =>
+  import('../pages/ProductDetailPage/ProductDetailPage').then((module) => ({
+    default: module.ProductDetailPage,
+  })),
+);
+const NotFoundPage = lazy(() =>
+  import('../pages/NotFoundPage/NotFoundPage').then((module) => ({
+    default: module.NotFoundPage,
+  })),
+);
+
+function withSuspense(component: ReactNode) {
+  return <Suspense fallback={<p>Cargando vista...</p>}>{component}</Suspense>;
+}
 
 export const router = createBrowserRouter([
   {
@@ -12,7 +31,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <ProductListPage />,
+        element: withSuspense(<ProductListPage />),
       },
       {
         path: 'products',
@@ -20,11 +39,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'products/:productId',
-        element: <ProductDetailPage />,
+        element: withSuspense(<ProductDetailPage />),
       },
       {
         path: '*',
-        element: <NotFoundPage />,
+        element: withSuspense(<NotFoundPage />),
       },
     ],
   },

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 
+import { addToCart } from '../../features/cart/services/cartService';
 import { getProductDetail } from '../../features/products/services/productService';
 import type { ProductDetail } from '../../features/products/types/product.types';
-import { apiRequest } from '../../shared/services/apiClient';
 import './ProductDetailPage.css';
 
 type LayoutContext = {
@@ -14,40 +14,113 @@ export function ProductDetailPage() {
   const { productId } = useParams();
   const { setCartCount } = useOutletContext<LayoutContext>();
   const [product, setProduct] = useState<ProductDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [selectedStorageCode, setSelectedStorageCode] = useState<number | ''>('');
   const [selectedColorCode, setSelectedColorCode] = useState<number | ''>('');
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
 
-  useEffect(() => {
+  async function loadProductDetail(currentProductId: string) {
+    setError(null);
+    setIsLoading(true);
+    setProduct(null);
+    setMessage(null);
+
+    const productDetail = await getProductDetail(currentProductId);
+    if (!productDetail.id) {
+      throw new Error('No se encontró el producto solicitado.');
+    }
+
+    setProduct(productDetail);
+    setSelectedStorageCode(productDetail.storages.length === 1 ? productDetail.storages[0].code : '');
+    setSelectedColorCode(productDetail.colors.length === 1 ? productDetail.colors[0].code : '');
+  }
+
+  async function handleRetry() {
     if (!productId) {
       return;
     }
 
-    void getProductDetail(productId).then((productDetail) => {
-      setProduct(productDetail);
-      setSelectedStorageCode(productDetail.storages.length === 1 ? productDetail.storages[0].code : '');
-      setSelectedColorCode(productDetail.colors.length === 1 ? productDetail.colors[0].code : '');
-    });
+    try {
+      await loadProductDetail(productId);
+    } catch (requestError) {
+      if (requestError instanceof Error && requestError.message) {
+        setError(requestError.message);
+      } else {
+        setError('No se pudo cargar el detalle del producto.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!productId) {
+      setError('No se encontró el producto solicitado.');
+      setIsLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    void loadProductDetail(productId)
+      .catch((requestError: unknown) => {
+        if (!isMounted) {
+          return;
+        }
+
+        if (requestError instanceof Error && requestError.message) {
+          setError(requestError.message);
+          return;
+        }
+
+        setError('No se pudo cargar el detalle del producto.');
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [productId]);
 
-  const canAddToCart = Boolean(product && selectedStorageCode !== '' && selectedColorCode !== '');
+  const canAddToCart = Boolean(
+    product &&
+      selectedStorageCode !== '' &&
+      selectedColorCode !== '' &&
+      !isAddingToCart,
+  );
 
   async function handleAddToCart() {
     if (!product || selectedStorageCode === '' || selectedColorCode === '') {
       return;
     }
 
-    const response = await apiRequest<{ count: number }>('/api/cart', {
-      method: 'POST',
-      body: {
+    setIsAddingToCart(true);
+    setMessage(null);
+
+    try {
+      const response = await addToCart({
         id: product.id,
         storageCode: selectedStorageCode,
         colorCode: selectedColorCode,
-      },
-    });
+      });
 
-    setCartCount(response.count);
-    setMessage('Producto añadido al carrito.');
+      setCartCount(response.count);
+      setMessage('Producto añadido al carrito.');
+    } catch (requestError) {
+      if (requestError instanceof Error && requestError.message) {
+        setMessage(requestError.message);
+      } else {
+        setMessage('No se pudo añadir el producto al carrito.');
+      }
+    } finally {
+      setIsAddingToCart(false);
+    }
   }
 
   return (
@@ -56,11 +129,23 @@ export function ProductDetailPage() {
         ← Volver al listado
       </Link>
 
-      {!product && <p className="detail-state">Cargando detalle...</p>}
+      {isLoading && <p className="detail-state">Cargando detalle...</p>}
+      {!isLoading && error && (
+        <div className="detail-state detail-state--error">
+          <p>{error}</p>
+          {productId && (
+            <button type="button" onClick={() => void handleRetry()}>
+              Reintentar
+            </button>
+          )}
+        </div>
+      )}
 
-      {product && (
+      {!isLoading && !error && product && (
         <div className="detail-layout">
-          <div className="product-image-placeholder">Imagen del producto</div>
+          <div className="product-image-placeholder">
+            <img src={product.imageUrl} alt={`${product.brand} ${product.model}`} />
+          </div>
 
           <article className="detail-panel">
             <p className="detail-panel__eyebrow">DETAILS VIEW</p>
@@ -73,7 +158,12 @@ export function ProductDetailPage() {
               {product.cpu && <li>CPU: {product.cpu}</li>}
               {product.ram && <li>RAM: {product.ram}</li>}
               {product.os && <li>Sistema operativo: {product.os}</li>}
+              {product.displayResolution && <li>Resolución: {product.displayResolution}</li>}
               {product.battery && <li>Batería: {product.battery}</li>}
+              {product.primaryCamera && <li>Cámara principal: {product.primaryCamera}</li>}
+              {product.secondaryCamera && <li>Cámara secundaria: {product.secondaryCamera}</li>}
+              {product.dimensions && <li>Dimensiones: {product.dimensions}</li>}
+              {product.weight && <li>Peso: {product.weight}</li>}
             </ul>
 
             <div className="actions-panel">
@@ -109,7 +199,7 @@ export function ProductDetailPage() {
               </label>
 
               <button disabled={!canAddToCart} onClick={handleAddToCart} type="button">
-                Añadir al carrito
+                {isAddingToCart ? 'Añadiendo...' : 'Añadir al carrito'}
               </button>
               {message && <p role="status">{message}</p>}
             </div>
