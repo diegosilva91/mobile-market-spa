@@ -1,12 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ProductCard } from '../../features/products/components/ProductCard';
 import { useProducts } from '../../features/products/hooks/useProducts';
+import { useInfiniteScroll } from '../../shared/hooks/useInfiniteScroll';
 import './ProductListPage.css';
+
+const PAGE_SIZE = 20;
 
 export function ProductListPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { products, isLoading, error, reload } = useProducts();
 
   const filteredProducts = useMemo(() => {
@@ -23,6 +27,19 @@ export function ProductListPage() {
       return brand.includes(normalizedSearch) || model.includes(normalizedSearch);
     });
   }, [products, searchTerm]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchTerm]);
+
+  const visibleProducts = filteredProducts.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredProducts.length;
+
+  function loadMore() {
+    setVisibleCount((prev) => prev + PAGE_SIZE);
+  }
+
+  const sentinelRef = useInfiniteScroll(loadMore, hasMore);
 
   return (
     <section className="list-view" aria-labelledby="product-list-title">
@@ -58,13 +75,22 @@ export function ProductListPage() {
       )}
 
       {!isLoading && !error && filteredProducts.length > 0 && (
-        <div className="list-view__grid" aria-label="Listado de productos">
-          {filteredProducts.map((product) => (
-            <Link className="product-card-link" key={product.id} to={'/products/' + product.id}>
-              <ProductCard product={product} />
-            </Link>
-          ))}
-        </div>
+        <>
+          <div className="list-view__grid" aria-label="Listado de productos">
+            {visibleProducts.map((product) => (
+              <Link className="product-card-link" key={product.id} to={'/products/' + product.id}>
+                <ProductCard product={product} />
+              </Link>
+            ))}
+          </div>
+
+          {hasMore && (
+            <div ref={sentinelRef} className="list-view__sentinel" aria-hidden="true">
+              <span className="list-view__sentinel-spinner" />
+              Cargando más productos...
+            </div>
+          )}
+        </>
       )}
     </section>
   );
