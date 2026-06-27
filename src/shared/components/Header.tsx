@@ -6,9 +6,11 @@ import './Header.css';
 
 type HeaderProps = {
   cartCount: number;
+  isCartOpen: boolean;
+  onCartClick: () => void;
 };
 
-export function Header({ cartCount }: HeaderProps) {
+export function Header({ cartCount, isCartOpen, onCartClick }: HeaderProps) {
   const { pathname } = useLocation();
 
   return (
@@ -21,7 +23,7 @@ export function Header({ cartCount }: HeaderProps) {
 
         <Breadcrumbs pathname={pathname} />
 
-        <CartCounter count={cartCount} />
+        <CartCounter count={cartCount} isOpen={isCartOpen} onClick={onCartClick} />
       </div>
     </header>
   );

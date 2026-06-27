@@ -4,15 +4,31 @@ import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { addToCart } from '../../features/cart/services/cartService';
 import { getProductDetail } from '../../features/products/services/productService';
 import type { ProductDetail } from '../../features/products/types/product.types';
+import type { AppLayoutOutletContext } from '../../shared/components/AppLayout';
 import './ProductDetailPage.css';
 
-type LayoutContext = {
-  setCartCount: (count: number) => void;
-};
+function parsePrice(value: string) {
+  const cleanedValue = value.replace(/[^0-9,.-]/g, '');
+  if (!cleanedValue) {
+    return 0;
+  }
+
+  const lastComma = cleanedValue.lastIndexOf(',');
+  const lastDot = cleanedValue.lastIndexOf('.');
+  if (lastComma > lastDot) {
+    const normalized = cleanedValue.replace(/\./g, '').replace(',', '.');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  const normalized = cleanedValue.replace(/,/g, '');
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 export function ProductDetailPage() {
   const { productId } = useParams();
-  const { setCartCount } = useOutletContext<LayoutContext>();
+  const { addCartItem, openCart } = useOutletContext<AppLayoutOutletContext>();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,14 +120,30 @@ export function ProductDetailPage() {
     setMessage(null);
 
     try {
-      const response = await addToCart({
+      await addToCart({
         id: product.id,
         storageCode: selectedStorageCode,
         colorCode: selectedColorCode,
       });
 
-      setCartCount(response.count);
-      setMessage('Producto añadido al carrito.');
+      const selectedStorage = product.storages.find((storage) => storage.code === selectedStorageCode);
+      const selectedColor = product.colors.find((color) => color.code === selectedColorCode);
+
+      addCartItem({
+        productId: product.id,
+        brand: product.brand,
+        model: product.model,
+        imageUrl: product.imageUrl,
+        priceLabel: product.price,
+        unitPrice: parsePrice(product.price),
+        storageCode: selectedStorageCode,
+        storageName: selectedStorage?.name ?? String(selectedStorageCode),
+        colorCode: selectedColorCode,
+        colorName: selectedColor?.name ?? String(selectedColorCode),
+      });
+
+      openCart();
+      setMessage('Producto añadido al carrito y visible en el sidebar.');
     } catch (requestError) {
       if (requestError instanceof Error && requestError.message) {
         setMessage(requestError.message);

@@ -15,11 +15,14 @@ vi.mock('../../features/cart/services/cartService', () => ({
   addToCart: (...args: unknown[]) => addToCartMock(...args),
 }));
 
-function renderProductDetail(setCartCount = vi.fn()) {
+function renderProductDetail() {
+  const addCartItem = vi.fn();
+  const openCart = vi.fn();
+
   return render(
     <MemoryRouter initialEntries={['/products/1']}>
       <Routes>
-        <Route element={<Outlet context={{ setCartCount }} />}>
+        <Route element={<Outlet context={{ addCartItem, openCart }} />}>
           <Route path="/products/:productId" element={<ProductDetailPage />} />
         </Route>
       </Routes>
@@ -29,7 +32,8 @@ function renderProductDetail(setCartCount = vi.fn()) {
 
 describe('ProductDetailPage', () => {
   it('muestra el detalle y permite añadir al carrito', async () => {
-    const setCartCount = vi.fn();
+    const addCartItem = vi.fn();
+    const openCart = vi.fn();
 
     getProductDetailMock.mockResolvedValue({
       id: '1',
@@ -43,7 +47,15 @@ describe('ProductDetailPage', () => {
     });
     addToCartMock.mockResolvedValue({ count: 3 });
 
-    renderProductDetail(setCartCount);
+    render(
+      <MemoryRouter initialEntries={['/products/1']}>
+        <Routes>
+          <Route element={<Outlet context={{ addCartItem, openCart }} />}>
+            <Route path="/products/:productId" element={<ProductDetailPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
 
     await screen.findByRole('heading', { name: /apple iphone/i });
     fireEvent.click(screen.getByRole('button', { name: /añadir al carrito/i }));
@@ -55,7 +67,19 @@ describe('ProductDetailPage', () => {
         storageCode: 2,
       });
     });
-    expect(setCartCount).toHaveBeenCalledWith(3);
+    expect(addCartItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: '1',
+        brand: 'Apple',
+        model: 'iPhone',
+        imageUrl: 'https://example.com/iphone.png',
+        storageCode: 2,
+        storageName: '256GB',
+        colorCode: 1,
+        colorName: 'Black',
+      }),
+    );
+    expect(openCart).toHaveBeenCalledTimes(1);
   });
 
   it('muestra estado de error cuando falla la carga', async () => {
